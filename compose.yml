@@ -1,0 +1,42 @@
+version: "3.9"
+services:
+   headnode:
+      image: mmmain/hadoop:headnode
+      container_name: headnode
+      volumes:
+         - hmnt1:/opt/mount1
+         - hmnt2:/opt/mount2
+         - hlogs:/usr/local/hadoop/current/logs
+#      ports:
+#         - "9870:9870"
+#         - "8088:8088"
+      networks:
+         - hadoopnet
+   worker:
+      image: mmmain/hadoop:worker
+      container_name: worker
+      volumes:
+         - wmnt1:/opt/mount1
+         - wmnt2:/opt/mount2
+         - wlogs:/usr/local/hadoop/current/logs
+      networks:
+         - hadoopnet
+      depends_on:
+         - headnode
+volumes:
+   hmnt1:
+      name: hmount1
+   hmnt2:
+      name: hmount2
+   wmnt1:
+      name: wmount1
+   wmnt2:
+      name: wmount2
+   hlogs:
+      name: headnodelogs
+   wlogs:
+      name: workerlogs
+networks:
+   hadoopnet:
+      driver: bridge
+      name: hadoopnet
