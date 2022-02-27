@@ -1,0 +1,9 @@
+from sys import stdin
+
+print("Please input some comma-separated numbers")
+s = input(">>>> ")
+s1 = s.rstrip("\n")
+print("List:")
+print(s1.split(","))
+print("Tuple:")
+print(tuple(s1.split(",")))
