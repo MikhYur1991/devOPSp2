@@ -1,0 +1,32 @@
+# Develop a procedure that will have a size argument and print a table where num of columns and rows will be of this size. 
+# Cells of table should contain numbers from 1 to n ** 2 placed in a spiral fashion. 
+# Spiral should start from top left cell and has a clockwise direction
+
+
+def Print_Spiral(n):
+    mat = [[1]*n for i in range(n)]
+    st = 1
+    m = 0
+    mat[n//2][n//2]=n*n
+    for v in range(n//2):
+        for i in range(n-m):
+            mat[v][i+v] = st
+            st+=1
+        for i in range(v+1, n-v):
+            mat[i][-v-1] = st
+            st+=1
+        for i in range(v+1, n-v):
+            mat[-v-1][-i-1] =st
+            st+=1
+        for i in range(v+1, n-(v+1)):
+            mat[-i-1][v]=st
+            st+=1
+        m+=2
+    for i in mat:
+        print(i)
+
+
+
+
+lenmat = int(input("Input matrix len: "))
+Print_Spiral(lenmat)
