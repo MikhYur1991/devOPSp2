@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1
+# >>>>>>>> HEADNODE <<<<<<<<
+FROM	centos:centos7 
+#COPY	hadoop-3.1.2.tar.gz /root/
+RUN	yum update -y && yum install -y iproute wget telnet net-tools java-1.8.0-openjdk openssh-server && yum clean all && \
+	wget https://archive.apache.org/dist/hadoop/common/hadoop-3.1.2/hadoop-3.1.2.tar.gz && \
+	tar xvfz hadoop-3.1.2.tar.gz -C /opt/ && rm -f hadoop-3.1.2.tar.gz && \
+	mkdir /usr/local/hadoop && ln -s /opt/hadoop-3.1.2/ /usr/local/hadoop/current && \
+	groupadd hadoop && useradd -g hadoop -p 123 -m hadoop && useradd -g hadoop -p 123 -m yarn && useradd -g hadoop -p 123 -m hdfs && \
+# form VM1
+	mkdir -p /opt/mount{1,2}/namenode-dir && chown -R hdfs:hadoop /opt/mount{1,2}/namenode-dir && \
+# for both instances
+	su - hadoop -c "ssh-keygen -f ~/.ssh/hadoop_headnode -P ''" && \
+	cd /usr/local/hadoop/current/etc/hadoop/ && \
+	for s in {"core-site.xml","hadoop-env.sh","hdfs-site.xml","yarn-site.xml"}; do mv "$s" "$s.bak"; done && \
+	wget https://gist.github.com/rdaadr/2f42f248f02aeda18105805493bb0e9b/raw/6303e424373b3459bcf3720b253c01373666fe7c/hadoop-env.sh && \
+	wget https://gist.github.com/rdaadr/64b9abd1700e15f04147ea48bc72b3c7/raw/2d416bf137cba81b107508153621ee548e2c877d/core-site.xml && \
+	wget https://gist.github.com/rdaadr/2bedf24fd2721bad276e416b57d63e38/raw/640ee95adafa31a70869b54767104b826964af48/hdfs-site.xml && \
+	wget https://gist.github.com/Stupnikov-NA/ba87c0072cd51aa85c9ee6334cc99158/raw/bda0f760878d97213196d634be9b53a089e796ea/yarn-site.xml && \
+	sed -E 's/%PATH_TO_OPENJDK8_INSTALLATION%/\/usr\/lib\/jvm\/java-1.8.0-openjdk-1.8.0.322.b06-1.el7_9.x86_64\/jre/' -i hadoop-env.sh && \
+	sed -E 's/%PATH_TO_HADOOP_INSTALLATION/\/usr\/local\/hadoop\/current/' -i hadoop-env.sh && \
+	sed -E 's/%HADOOP_HEAP_SIZE%/512M/' -i hadoop-env.sh && \
+	sed -E 's/%HDFS_NAMENODE_HOSTNAME%/headnode/' -i core-site.xml && \
+	sed -E 's/%NAMENODE_DIRS%/\/opt\/mount1\/namenode-dir,\/opt\/mount2\/namenode-dir/' -i hdfs-site.xml && \
+	sed -E 's/%DATANODE_DIRS%/\/opt\/mount1\/datanode-dir,\/opt\/mount2\/datanode-dir/' -i hdfs-site.xml && \
+	sed -E 's/%YARN_RESOURCE_MANAGER_HOSTNAME%/headnode/' -i yarn-site.xml && \
+	sed -E 's/%NODE_MANAGER_LOCAL_DIR%/\/opt\/mount1\/nodemanager-local-dir,\/opt\/mount2\/nodemanager-local-dir/' -i yarn-site.xml && \
+	sed -E 's/%NODE_MANAGER_LOG_DIR%/\/opt\/mount1\/nodemanager-log-dir,\/opt\/mount2\/nodemanager-log-dir/' -i yarn-site.xml && \
+	touch /etc/profile.d/hadoop.sh && echo "export HADOOP_HOME=/usr/local/hadoop/current/" | tee /etc/profile.d/hadoop.sh && \
+# for VM1
+	chgrp -R hadoop /usr/local/hadoop/current && mkdir /usr/local/hadoop/current/logs && \
+	chown hadoop:hadoop /usr/local/hadoop/current/logs && chmod g+w /usr/local/hadoop/current/logs && \
+	su - hdfs -c "/usr/local/hadoop/current/bin/hdfs namenode -format cluster1" && \
+	echo '#!/bin/bash' | tee /usr/local/bin/daemon_start && \
+	echo "su - hdfs -c \"/usr/local/hadoop/current/bin/hdfs namenode  > /usr/local/hadoop/current/logs/hdfs.log 2>&1\" & \\" | tee -a /usr/local/bin/daemon_start && \
+	echo "su - yarn -c \"/usr/local/hadoop/current/bin/yarn resourcemanager > /usr/local/hadoop/current/logs/yarn.log 2>&1\"" | tee -a /usr/local/bin/daemon_start && \
+	chmod u+x /usr/local/bin/daemon_start
+VOLUME	/opt/mount1 /opt/mount2
+EXPOSE	8088
+EXPOSE	9870
+CMD ["/usr/local/bin/daemon_start"]
