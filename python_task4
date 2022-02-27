@@ -1,0 +1,8 @@
+# We took a little look on os module. Write a small script which will print a string using all the types 
+# of string formatting which were considered during the lecture with the following context:
+# This script has the following PID: <ACTUAL_PID_HERE>. It was ran by <ACTUAL_USERNAME_HERE> 
+# to work happily on <ACTUAL_OS_NAME>-<ACTUAL_OS_RELEASE>.
+
+import os
+
+print("This script has the following PID:",os.getpid(),". It was run by ",os.getlogin()," to work happily on ",os.uname().sysname,"-",os.uname().version)
