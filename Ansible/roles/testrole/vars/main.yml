@@ -1,0 +1,7 @@
+---
+# vars file for testrole
+
+  ansiuser    : ansiuser2
+  src_ntp_conf: ntp.conf
+  mysql_repo  : mysql80-community-release-el7.rpm
+

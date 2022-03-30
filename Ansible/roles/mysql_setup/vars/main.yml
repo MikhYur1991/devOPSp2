@@ -1,0 +1,10 @@
+---
+# vars file for mysql_setup---
+
+  mysql_repo_file : mysql80-community-release-el7.rpm
+  mysql_root_password: 1>nxsqpVq)2p
+  mysql_password: 2>nxsqpVq)2p
+  dbname: testdb
+  dbuser: testuser
+
+

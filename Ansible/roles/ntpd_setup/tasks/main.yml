@@ -1,0 +1,26 @@
+---
+# tasks file for ntpd_setup
+
+- name: Install ntpd
+  ansible.builtin.yum:
+    name: ntp
+    state: present
+  become: yes
+
+- name: Copy ntpd config
+  ansible.builtin.copy:
+    src: "{{ src_ntp_conf }}"
+    dest: /etc/ntp.conf
+  become: yes
+
+- name: Start ntpd server
+  ansible.builtin.systemd:
+    name:     ntpd
+    state:    started
+    enabled:  yes
+  become: yes
+  register: results
+
+- debug:
+    var: results.state
+

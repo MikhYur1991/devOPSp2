@@ -1,0 +1,10 @@
+[ansiclients]
+ansiclient1 ansible_host=192.168.56.103 ansible_user=ansiuser ansible_ssh_private_key_file=/home/ansiuser/.ssh/ansiuser_ansiserver
+ansiclient2 ansible_host=192.168.56.105 ansible_user=ansiuser ansible_ssh_private_key_file=/home/ansiuser/.ssh/ansiuser_ansiserver
+
+[ansiservers]
+ansiserver ansible_host=192.168.56.104 ansible_user=ansiuser ansible_ssh_private_key_file=/home/ansiuser/.ssh/ansiuser_ansiserver
+
+[ansihosts:children]
+ansiclients
+ansiservers

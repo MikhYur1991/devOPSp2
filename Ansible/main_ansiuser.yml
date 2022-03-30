@@ -1,0 +1,7 @@
+
+---
+- name: HomeWork Playbook - create user and update system
+  hosts: ansiclients
+
+  roles:
+    - ansible_user

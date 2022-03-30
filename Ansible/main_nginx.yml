@@ -1,0 +1,7 @@
+
+---
+- name: HomeWork Playbook
+  hosts: ansiclient2
+
+  roles:
+    - nginx_setup
