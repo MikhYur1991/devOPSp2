@@ -1,0 +1,63 @@
+### For this task you need to have docker daemon installed and running.  
+### The task is to create a python script, that has following functions:  
+### 1. connects to docker API and print a warning message 
+### if there are dead or stopped containers with their ID and name.
+import docker
+
+def IsStopped():
+    l = []
+    client = docker.from_env()
+    if (client.containers.list('status=exited')):
+        for c in client.containers.list('status=exited'):
+            l.append("ID: "+c.short_id+" Name: "+c.name)
+    return l
+
+
+### 2. containers list, similar to docker ps -a  
+def ContList():
+    l = []
+    client = docker.from_env()
+    if (client.containers.list('all')):
+        for c in client.containers.list('all'):
+            ports = '; '.join([f'{key.capitalize()}: {value}' for key, value in c.ports.items()])
+            cdate = c.attrs['Created'][:19]
+            s = c.short_id.ljust(15)+c.image.tags[0].ljust(25)+\
+            c.attrs['Path'].ljust(30)+cdate.ljust(25)+\
+            c.status.ljust(20)+ports.ljust(30)+c.name.ljust(20)
+            l.append(s)
+    return l
+
+
+### 3. image list, similar to docker image ls 
+def ImageList():
+    l = []
+    client = docker.from_env()
+    if (client.images.list()):
+        for im in client.images.list():
+            k = im.id.index(':')+1
+            imid = im.id[k:k+12]
+            k = im.tags[0].index(':') 
+            imrepo = im.tags[0][:k]
+            imtag = im.tags[0][k+1:]
+            imsize = '{:,.0f}'.format(im.attrs['Size']/(float(1<<20)))+" MB"
+            imdate = im.attrs['Created'][:19]
+            s = imrepo.ljust(25)+imtag.ljust(20)+imid.ljust(15)+\
+            imdate.ljust(25)+imsize.ljust(20)
+            l.append(s)
+    return l
+
+
+if (IsStopped):
+    print("Warning! There is some stopped containers:")
+    for l in IsStopped(): print(l)
+else: print("No stopped containers")
+
+print("", "CONTAINERS:", *ContList(), sep='\n')
+
+print("", "IMAGES: ", *ImageList(), sep='\n')
+
+
+### 4. container information, like docker inspect  
+### Connection function must accept connection string for example 'http://192.168.56.101:2376' and connect to it or use string from environment if no connection string is given.    In order to connect to docker, you can use either Unix socket or reconfigure daemon to use a network socket (https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option)  
+###
+###

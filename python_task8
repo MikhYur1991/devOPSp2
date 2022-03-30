@@ -1,0 +1,88 @@
+### You have had AWK homework (3-4), please find a document in a homework Slack thread. Do all the same AWK tasks using Python
+###
+### You have log file 'access.log' with the following format:
+
+### remote-ip - - [date] "method query protocol" status-code object-size "referrer" "user-agent" "x-forwarded-for"
+
+### object-size - the size of the object returned to the client
+### referrer    - the location where the client came from
+### user-agent  - information about client browser
+
+### Sample can be downloaded from http://www.almhuette-raith.at/apache-log/access.log (~650 Mb)
+
+### Tasks
+
+### Awk /ɔːk/
+### 1. What is the most frequent browser?
+
+def GetBrowser(fs):
+    f = open(fs,'r')
+
+    mylist = []
+    mydict = {}
+    for l in f.readlines():
+        if (len(l)>20):
+            mylist = l.split(" ")
+            if (len(mylist[11]) > 2):
+                k = mydict.get(mylist[11],0)
+                mydict.update({mylist[11]:k+1})
+    f.close()
+
+    max = 0
+    maxname = ""
+    for k,v in mydict.items():
+        if (v > max):
+            max = v
+            maxname = k
+
+    return "Browser "+maxname+" has checked "+str(max)+" times"
+
+
+print(GetBrowser('access.log'))
+
+### 2. Show number of requests per month for ip 216.244.66.230 (for example: Sep 2016 - 100500 reqs, Oct 2016 - 0 reqs, Nov 2016 - 2 reqs...)
+def GetIPCount(fs):
+    f = open(fs,'r')
+
+    mylist = []
+    mydict = {}
+    for l in f.readlines():
+        if (len(l)>20):
+            if (l.find("216.244.66.230") >= 0):
+                mylist = l.split(" ")
+                s = mylist[3].lstrip("[")
+                k = mydict.get(s[3:11],0)
+                mydict.update({s[3:11]:k+1})
+    f.close()
+
+    return mydict
+
+
+print(GetIPCount('access.log'))
+
+### 3. Show total amount of data which server has provided for each unique ip (i.e. 100500 bytes for 1.2.3.4; 9001 bytes for 5.4.3.2 and so on)
+def IsInt(s):
+    try:
+       j =  int(s)
+    except ValueError:
+       j = 0
+    return j
+
+def GetBytes(fs):
+    f = open(fs,'r')
+
+    mylist = []
+    mydict = {}
+    for l in f.readlines():
+        if (len(l)>20):
+            mylist = l.split(" ")
+            s = mylist[0].strip()
+            if (IsInt(mylist[9].strip())):
+                k = mydict.get(s,0)
+                mydict.update({s:k+int(mylist[9].strip())})
+    f.close()
+    return mydict
+
+
+print(GetBytes('access.log'))
+

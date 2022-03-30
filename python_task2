@@ -1,0 +1,24 @@
+#Develop a procedure to print all even numbers from a numbers list which is given as an argument. 
+#Keep the original order of numbers in list and stop printing if a number 254 was met. 
+#Don't forget to add a check of the passed argument type.
+
+from sys import argv
+
+def StrToInt(s):
+    try:
+       j =  int(s)
+    except ValueError:
+       j = 1
+    return j
+
+
+
+s = ""
+b = 1
+for a in argv:
+    i = StrToInt(a)
+    if ((i%2 == 0) and b):
+       s = s + str(i) + " "
+       if (i == 254):
+          b = 0 
+print("Even args: ",s)
