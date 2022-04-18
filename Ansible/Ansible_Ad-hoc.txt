@@ -1,0 +1,139 @@
+###
+### 1. Создать 3 ВМ
+### 2. На одной из них установить ansible и создать отдельного пользователя, из-под которого он будет запускаться
+###
+
+[root@ansiserver ~]# useradd -m ansiuser -p 123
+[root@ansiserver ~]# sed '/^wheel:/s/$/,ansiuser/' -i /etc/group && sed '/^wheel:/s/:,/:/' -i /etc/group
+[root@ansiserver ~]# sed '/wheel/s/^[[:space:]]*%wheel/#%wheel/' -i /etc/sudoers && echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+[root@ansiserver ~]# su - ansiuser
+[ansiuser@ansiserver ~]$ id
+uid=1012(ansiuser) gid=1012(ansiuser) группы=1012(ansiuser),10(wheel) контекст=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[ansiuser@ansiserver ~]$ yum repolist
+Загружены модули: fastestmirror
+Repodata is over 2 weeks old. Install yum-cron? Or run: yum makecache fast
+Determining fastest mirrors
+ * base: mirror.reconn.ru
+ * epel: mirror.yandex.ru
+ * extras: mirror.corbina.net
+ * updates: mirror.corbina.net
+<<<< skipped >>>>
+[ansiuser@ansiserver ~]$ sudo yum update
+
+<<<< skipped >>>>
+
+Выполнено!
+
+[ansiuser@ansiserver ~]$ sudo yum install ansible
+
+<<<< skipped >>>>
+
+Выполнено!
+
+###
+### 3. Используя ansible ad-hoc:
+### - создать такого же пользователя на остальных машинах
+
+;;; So, we have an administrative user "guest1" on every "client" host.
+;;; Let's trying to create an "ansiuser" on both client hosts
+;;; At first we have to create an Ansible project catalog and then write an invenory file in it
+
+
+[ansiuser@ansiserver ~]$ mkdir AnsiProject
+
+<<<< skipped >>>>
+
+[ansiuser@ansiserver AnsiProject]$ cat hosts.ansible 
+[ansihosts]
+ansiclient1 ansible_host=192.168.56.103 ansible_user=guest1 
+ansiclient2 ansible_host=192.168.56.105 ansible_user=guest1
+
+;;; Execute an ansible  ping command to clients
+
+[ansiuser@ansiserver AnsiProject]$ ansible -i hosts.ansible ansihosts --ask-pass -m ping 
+SSH password: 
+ansiclient2 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    }, 
+    "changed": false, 
+    "ping": "pong"
+}
+ansiclient1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    }, 
+    "changed": false, 
+    "ping": "pong"
+}
+
+;;; Now we can create an "ansiuser" on both client hosts
+
+[ansiuser@ansiserver AnsiProject]$ ansible -i hosts.ansible ansihosts --ask-pass -a "/usr/sbin/useradd -m ansiuser -p 123" -b
+SSH password: 
+ansiclient2 | CHANGED | rc=0 >>
+
+ansiclient1 | CHANGED | rc=0 >>
+
+###
+### - подложить ему ssh-ключи
+###
+
+;;; At first we have to copy public keys 
+
+[ansiuser@ansiserver AnsiProject]$ ansible -i hosts.ansible ansihosts --ask-pass -m copy -a "src=/home/ansiuser/.ssh/ansiuser_ansiserver.pub dest=/home/ansiuser" -b
+SSH password: 
+ansiclient1 | CHANGED => {
+
+<<<< skipped >>>>
+
+ansiclient2 | CHANGED => {
+
+<<<< skipped >>>>
+
+;;; Then add key to the "authorized_keys" file
+
+[ansiuser@ansiserver AnsiProject]$ ansible -i hosts.ansible ansihosts --ask-pass -m shell \
+> -a "mkdir /home/ansiuser/.ssh; cat /home/ansiuser/ansiuser_ansiserver.pub >> /home/ansiuser/.ssh/authorized_keys; \
+> chmod 700 /home/ansiuser/.ssh; chown -R ansiuser:ansiuser /home/ansiuser/.ssh" -b
+SSH password: 
+[WARNING]: Consider using the file module with state=directory rather than running 'mkdir'.  If you need to use command because file is insufficient you can add 'warn: false' to this
+command task or set 'command_warnings=False' in ansible.cfg to get rid of this message.
+ansiclient1 | CHANGED | rc=0 >>
+
+ansiclient2 | CHANGED | rc=0 >>
+
+
+###
+### - дать возможность использовать sudo (помните о том, что редактирование /etc/sudoers не через visudo - плохая идея)
+###
+
+[ansiuser@ansiserver AnsiProject]$ ansible -i hosts.ansible ansihosts --ask-pass -m shell -a "sed '/^wheel:/s/$/,ansiuser/' -i /etc/group && sed '/^wheel:/s/:,/:/' -i /etc/group" -b
+SSH password: 
+[WARNING]: Consider using the replace, lineinfile or template module rather than running 'sed'.  If you need to use command because replace,
+lineinfile or template is insufficient you can add 'warn: false' to this command task or set 'command_warnings=False' in ansible.cfg to get rid of
+this message.
+ansiclient1 | CHANGED | rc=0 >>
+
+ansiclient2 | CHANGED | rc=0 >>
+
+;;; Now we can modify inventory file to rewrite the "ansible_user" option and append the private key file path
+
+[ansiuser@ansiserver AnsiProject]$ cat hosts.ansible 
+[ansihosts]
+ansiclient1 ansible_host=192.168.56.103 ansible_user=ansiuser ansible_ssh_private_key_file=/home/ansiuser/.ssh/ansiuser_ansiserver
+ansiclient2 ansible_host=192.168.56.105 ansible_user=ansiuser ansible_ssh_private_key_file=/home/ansiuser/.ssh/ansiuser_ansiserver
+
+;;; And verify "ansiuser" id on every "client" machine
+
+[ansiuser@ansiserver AnsiProject]$ ansible -i hosts.ansible ansihosts -m shell -a "/usr/bin/whoami; /usr/bin/id"
+ansiclient2 | CHANGED | rc=0 >>
+ansiuser
+uid=1012(ansiuser) gid=1012(ansiuser) группы=1012(ansiuser),10(wheel) контекст=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+ansiclient1 | CHANGED | rc=0 >>
+ansiuser
+uid=1012(ansiuser) gid=1012(ansiuser) группы=1012(ansiuser),10(wheel) контекст=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+
+
+ 
+

@@ -1,0 +1,45 @@
+---
+# tasks file for testrole
+
+- name: Update packages
+  ansible.builtin.yum:
+    name: 
+      - '*'
+    state: latest
+  become: yes
+
+- name: Create Ansible user
+  ansible.builtin.shell: |
+    if (grep {{ ansiuser }} /etc/passwd 1>/dev/null) 
+      then echo "User already exists!"
+      else /usr/sbin/useradd -m {{ ansiuser }} -p 123
+    fi
+  args:
+    executable: /usr/bin/bash
+  become: yes
+
+- name: Install ntpd
+  ansible.builtin.yum:
+    name: ntp
+    state: present
+  become: yes
+
+- name: Copy ntpd config
+  ansible.builtin.copy:
+    src: "{{ src_ntp_conf }}"
+    dest: /etc/ntp.conf
+  become: yes
+
+- name: Start ntpd server
+  ansible.builtin.systemd:
+    name:     ntpd
+    state:    started
+    enabled:  yes
+  become: yes
+  register: results
+
+- debug:
+    var: results.state
+
+- debug:
+    var: results.enabled

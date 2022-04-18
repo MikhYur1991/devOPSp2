@@ -1,0 +1,23 @@
+---
+# tasks file for ansible_user
+
+- name: Update packages
+  ansible.builtin.yum:
+    name:
+      - '*'
+    state: latest
+  become: yes
+
+- name: Create Ansible user
+  ansible.builtin.shell: |
+    if (grep {{ ansiuser }} /etc/passwd 1>/dev/null)
+      then echo "User already exists!"
+      else /usr/sbin/useradd -m {{ ansiuser }} -p 123
+    fi
+  args:
+    executable: /usr/bin/bash
+  become: yes
+  register: results
+
+- debug:
+    var: results.stdout

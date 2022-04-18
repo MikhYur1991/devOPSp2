@@ -1,0 +1,5 @@
+---
+# vars file for ntpd_setup
+
+  src_ntp_conf: ntp.conf
+

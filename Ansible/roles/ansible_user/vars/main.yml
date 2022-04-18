@@ -1,0 +1,5 @@
+---
+# vars file for ansible_user
+
+  ansiuser    : ansiuser2
+

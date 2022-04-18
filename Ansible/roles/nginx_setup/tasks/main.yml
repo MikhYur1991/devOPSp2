@@ -1,0 +1,89 @@
+---
+# tasks file for nginx_setup
+
+- name: Update packages
+  ansible.builtin.yum:
+    name: 
+      - '*'
+    state: latest
+  become: yes
+
+- name: Install nginx
+  ansible.builtin.yum:
+    name: 
+      - epel-release
+      - nginx
+    state: present
+  become: yes
+
+#- name: Create Site root directory
+#  ansible.builtin.shell:
+#    cmd: mkdir -p {{ root_dir }}/{{ domain_name }}
+#  become: yes 
+
+- name: Create Site root directory
+  ansible.builtin.file:
+    path: "{{ root_dir }}/{{ domain_name }}"
+    state: directory
+    owner: nginx
+    group: nginx
+    setype: httpd_sys_content_t
+  become: yes
+
+- name: Copy index page file 
+  ansible.builtin.copy:
+    src: index.html
+    dest: "{{ root_dir }}/{{ domain_name }}"
+    owner: nginx
+    group: nginx
+#  notify: Restart Nginx
+  become: yes
+
+- name: Copy Nginx config 
+  ansible.builtin.copy:
+    src: "{{ domain_name }}.conf"
+    dest: /etc/nginx/conf.d/
+  notify: Reload Nginx
+  become: yes
+
+- name: Set Selinux Context 
+  ansible.builtin.shell: |
+    setenforce 0
+    semanage fcontext -a -t httpd_sys_content_t '{{ root_dir }}(/.*)?'
+    restorecon -iRv {{ root_dir }}
+    setenforce 1
+  args:
+    executable: /usr/bin/bash
+  become: yes
+
+- name: Start Nginx server 
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Add example.com to /etc/hosts
+  ansible.builtin.shell: |
+    sed '/example.com/d' -i /etc/hosts
+    echo `ip addr | grep inet | grep -v inet6 | grep -v 127.0.0.1 | head -n 1 | \
+    awk '{ print $2 }'| awk -F '/' '{ print $1 }'` " {{ domain_name }}" | \
+    sudo tee -a /etc/hosts
+  become: yes
+
+#- name: Curl Nginx page
+#  ansible.builtin.shell:
+#    cmd: curl {{ domain_name }}
+#  register: nginx_test_out
+
+#- debug:
+#    var: nginx_test_out.stdout
+
+- name: Curl Nginx page
+  ansible.builtin.uri:
+    url: http://example.com
+    return_content: yes
+  register: http_answer
+
+- debug:
+    var: http_answer.content

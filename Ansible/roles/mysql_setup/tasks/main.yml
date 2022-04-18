@@ -1,0 +1,63 @@
+---
+# tasks file for mysql_setup
+
+- name: Copy MySql repo file 
+  ansible.builtin.copy:
+    src: "{{ mysql_repo_file }}"
+    dest: "~/"
+
+- name: Install MySql repo 
+  ansible.builtin.shell: 
+    cmd: /usr/bin/rpm -Uvh --replacepkgs {{ mysql_repo_file }}
+  become: yes
+
+- name: Update packages
+  ansible.builtin.yum:
+    name: 
+      - '*'
+    state: latest
+  become: yes
+
+- name: Install MySql
+  ansible.builtin.yum:
+    name: mysql-server
+    state: present
+  become: yes
+
+- name: Start MySql server 
+  ansible.builtin.systemd:
+    name: mysqld
+    state: started
+  become: yes
+
+- name: Get MySql superuser password
+  ansible.builtin.shell: |
+    grep 'temporary password' /var/log/mysqld.log | sed -r 's/(.+)[a-zA-Z0-9_]+: ()/\2/'
+  args:
+    executable: /usr/bin/bash
+  register: temp_root_passwd
+  become: yes
+
+- name: Create MySql user and Database
+  ansible.builtin.shell: |
+    if [ ! -e ~/.my.cnf ]
+    then
+      echo "[mysql]" > ~/.my.cnf
+      echo "user=root" >> ~/.my.cnf
+      echo "password={{ temp_root_passwd.stdout }}" >> ~/.my.cnf
+      chmod 600 ~/.my.cnf
+    fi
+    mysql --connect-expired-password <<EOF
+    alter user 'root'@'localhost' identified by '{{ mysql_root_password }}';
+    create database {{ dbname }};
+    create user '{{ dbuser }}'@'localhost' identified by '{{ mysql_password }}';
+    grant all on {{ dbname }}.* to '{{ dbuser }}'@'localhost';
+    EOF
+    sed 3d -i ~/.my.cnf
+    echo "password={{ mysql_root_password }}" >> ~/.my.cnf
+  args:
+    executable: /usr/bin/bash
+  register: mysql_test_out
+
+- debug:
+    var: mysql_test_out
